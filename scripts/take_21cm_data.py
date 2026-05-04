@@ -56,6 +56,8 @@ def main() -> None:
             write_psd_csv(csv_path, freqs_hz, psd_linear, meta)
             print(f"Saved: {csv_path}")
     finally:
+        if hasattr(sdr, "set_bias_tee"):
+            sdr.set_bias_tee(False)
         sdr.close()
 
 
