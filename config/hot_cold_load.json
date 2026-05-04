@@ -3,7 +3,6 @@
     "sample_rate_hz": 2400000,
     "center_freq_hz": 1420405800,
     "gain_db": 36.4,
-    "freq_correction_ppm": 0,
     "bias_t": true
   },
   "observation": {

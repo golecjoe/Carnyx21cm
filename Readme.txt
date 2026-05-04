@@ -22,5 +22,4 @@ Run examples:
 
 Notes:
 - Set `bias_t` true in config when powering the LNA from the RTL-SDR bias-T.
-- If your adapter needs frequency correction, set `freq_correction_ppm`.
 - Each CSV includes a metadata JSON row followed by frequency + PSD columns.

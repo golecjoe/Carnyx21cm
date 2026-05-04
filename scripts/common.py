@@ -28,10 +28,6 @@ def configure_sdr(sdr_cfg: dict[str, Any]) -> RtlSdr:
     sdr.sample_rate = float(sdr_cfg["sample_rate_hz"])
     sdr.center_freq = float(sdr_cfg["center_freq_hz"])
     sdr.gain = sdr_cfg["gain_db"]
-    ppm = sdr_cfg.get("freq_correction_ppm")
-    if ppm is not None:
-        sdr.freq_correction = int(ppm)
-
     bias_t = bool(sdr_cfg.get("bias_t", False))
     if hasattr(sdr, "set_bias_tee"):
         sdr.set_bias_tee(bias_t)
