@@ -1,0 +1,18 @@
+{
+  "sdr": {
+    "sample_rate_hz": 2400000,
+    "center_freq_hz": 1420405800,
+    "gain_db": 36.4,
+    "freq_correction_ppm": 0,
+    "bias_t": true
+  },
+  "observation": {
+    "fft_size": 4096,
+    "samples_per_scan": 262144,
+    "num_integrations": 15,
+    "elevations_deg": [80, 70, 60, 50, 40, 30, 20]
+  },
+  "output": {
+    "directory": "data/sky_dip"
+  }
+}
