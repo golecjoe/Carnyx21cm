@@ -18,7 +18,7 @@ from common import (
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", default="config/sky_dip.json")
+    parser.add_argument("--config", default="../config/sky_dip.json")
     args = parser.parse_args()
 
     cfg = load_config(args.config)
