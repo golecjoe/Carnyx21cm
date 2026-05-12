@@ -13,6 +13,6 @@
     "num_scans": 20
   },
   "output": {
-    "directory": "data/take_50ohm_data"
+    "directory": "data/take_50ohm_data_7"
   }
 }

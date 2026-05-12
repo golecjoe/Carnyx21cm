@@ -9,7 +9,7 @@
     "fft_size": 4096,
     "samples_per_scan": 262144,
     "num_integrations": 15,
-    "elevations_deg": [80, 70, 60, 50, 40, 30, 20]
+    "elevations_deg": [80, 60, 50, 40, 30]
   },
   "output": {
     "directory": "data/sky_dip"

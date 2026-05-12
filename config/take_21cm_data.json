@@ -13,6 +13,6 @@
     "num_scans": 20
   },
   "output": {
-    "directory": "data/take_21cm_data"
+    "directory": "data/take_21cm_data_7"
   }
 }
