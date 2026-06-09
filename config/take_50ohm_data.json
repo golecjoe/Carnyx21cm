@@ -1,12 +1,19 @@
 {
   "sdr": {
     "sample_rate_hz": 2400000,
-    "center_freq_hz": 1420405800,
     "gain_db": 36.4,
     "bias_t": true
   },
   "observation": {
     "load_label": "50ohm_termination",
+    "center_freqs_hz": [
+      1418805800,
+      1419605800,
+      1420405800,
+      1421205800,
+      1422005800
+    ],
+    "settle_samples": 262144,
     "fft_size": 4096,
     "samples_per_scan": 262144,
     "num_integrations": 30,

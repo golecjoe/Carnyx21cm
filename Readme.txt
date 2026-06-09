@@ -25,4 +25,6 @@ Run examples:
 
 Notes:
 - Set `bias_t` true in config when powering the LNA from the RTL-SDR bias-T.
+- `take_21cm_data.py` and `take_50ohm_data.py` sweep through `observation.center_freqs_hz` once per scan.
+- `settle_samples` are discarded after each retune before integrating a spectrum.
 - Each CSV includes a metadata JSON row followed by frequency + PSD columns.

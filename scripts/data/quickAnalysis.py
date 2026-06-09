@@ -21,7 +21,7 @@ def make_data_arrays(resispaths,skypaths):
 		tmpdata = np.loadtxt(i,delimiter=',',skiprows=2)
 		skyaud += tmpdata[:,2]
 	skyaud /= len(skypaths)
-	n = 20#30
+	n = 1#30
 
 	smooth_sky = np.convolve(skyaud,np.ones(n)/n,mode='valid') 
 	smooth_resis = np.convolve(resisaud,np.ones(n)/n,mode='valid') 
@@ -110,6 +110,111 @@ def fit_linear_plus_periodic(x, y, fit_mask, nfreq=2):
 	y_resid = y_detrended - periodic_fit
 	return lin_fit, periodic_fit, y_detrended, y_resid, nu_peaks
 
+def fit_linear_periodic_plus_gaussian_joint(
+	x,
+	y,
+	fit_mask,
+	gauss_center_bounds=(1420.3, 1420.41),
+	gauss_sigma_bounds=(0.05, 0.1),
+	nfreq=3,
+	n_center=220,
+	n_sigma=140
+):
+	x_fit = x[fit_mask]
+	y_fit = y[fit_mask]
+	x0 = np.mean(x_fit)
+	xs = x - x0
+
+	# Seed periodic frequencies from detrended masked data.
+	lin_coef = np.polyfit(x_fit, y_fit, 1)
+	lin_seed = np.polyval(lin_coef, x)
+	y_detrended_seed = y - lin_seed
+	y_detrended_fit = y_detrended_seed[fit_mask]
+
+	dx = np.median(np.diff(x_fit))
+	fft_freq = np.fft.rfftfreq(y_detrended_fit.size, d=dx)
+	fft_amp = np.abs(np.fft.rfft(y_detrended_fit))
+	fft_amp[0] = 0.0
+	n_pick = min(nfreq, fft_amp.size - 1)
+	peak_idx = np.argpartition(fft_amp, -n_pick)[-n_pick:]
+	peak_idx = peak_idx[np.argsort(fft_amp[peak_idx])[::-1]]
+	nu_peaks = fft_freq[peak_idx]
+
+	# Build x-dependent columns that are linear in coefficients.
+	base_cols = [np.ones_like(x), x]
+	for nu in nu_peaks:
+		omega = 2.0 * np.pi * nu
+		s = np.sin(omega * x)
+		c = np.cos(omega * x)
+		base_cols.append(s)
+		base_cols.append(c)
+		base_cols.append(xs * s)
+		base_cols.append(xs * c)
+	base = np.column_stack(base_cols)
+
+	centers = np.linspace(gauss_center_bounds[0], gauss_center_bounds[1], n_center)
+	sigmas = np.linspace(gauss_sigma_bounds[0], gauss_sigma_bounds[1], n_sigma)
+
+	best_rss = np.inf
+	best_coef = None
+	best_center = centers[len(centers) // 2]
+	best_sigma = sigmas[len(sigmas) // 2]
+	best_gauss = np.zeros_like(x)
+
+	for c0 in centers:
+		dx0 = x - c0
+		for s0 in sigmas:
+			gauss_col = np.exp(-0.5 * (dx0 / s0) ** 2)
+			design = np.column_stack([base, gauss_col])
+			design_fit = design[fit_mask]
+			coef, _, _, _ = np.linalg.lstsq(design_fit, y_fit, rcond=None)
+			resid = y_fit - design_fit @ coef
+			rss = np.dot(resid, resid)
+			if rss < best_rss:
+				best_rss = rss
+				best_coef = coef
+				best_center = c0
+				best_sigma = s0
+				best_gauss = gauss_col
+
+	model = np.column_stack([base, best_gauss]) @ best_coef
+	lin_fit = best_coef[0] + best_coef[1] * x
+	periodic_fit = model - lin_fit - best_coef[-1] * best_gauss
+	gaussian_fit = best_coef[-1] * best_gauss
+	y_resid = y - model
+	return lin_fit, periodic_fit, gaussian_fit, y_resid, nu_peaks, best_center, best_sigma, best_coef[-1]
+
+def fit_gaussian_bruteforce(x, y, fit_mask, center_bounds, sigma_bounds, n_center=220, n_sigma=140):
+	centers = np.linspace(center_bounds[0], center_bounds[1], n_center)
+	sigmas = np.linspace(sigma_bounds[0], sigma_bounds[1], n_sigma)
+
+	best_rss = np.inf
+	best_center = centers[len(centers) // 2]
+	best_sigma = sigmas[len(sigmas) // 2]
+	best_amp = 0.0
+
+	x_fit = x[fit_mask]
+	y_fit = y[fit_mask]
+
+	for c in centers:
+		dx = x_fit - c
+		for s in sigmas:
+			g = np.exp(-0.5 * (dx / s) ** 2)
+			den = np.dot(g, g)
+			if den <= 0:
+				continue
+			amp = np.dot(y_fit, g) / den
+			resid = y_fit - amp * g
+			rss = np.dot(resid, resid)
+			if rss < best_rss:
+				best_rss = rss
+				best_center = c
+				best_sigma = s
+				best_amp = amp
+
+	gauss_full = best_amp * np.exp(-0.5 * ((x - best_center) / best_sigma) ** 2)
+	return gauss_full, best_center, best_sigma, best_amp
+
 
 def process_series(freq, ratio, label,plot_diag=False):
 	ratio_centered = ratio #- np.mean(ratio)
@@ -121,6 +226,18 @@ def process_series(freq, ratio, label,plot_diag=False):
 
 	lin_fit, periodic_fit, y_detrended, y_resid, nu_peaks = fit_linear_plus_periodic(
 		freq, ratio_centered, fit_mask, nfreq=3
+	)
+	gauss_fit_mask = (freq >= 1419.95) & (freq <= 1420.85)
+	gaussian_fit, g_center, g_sigma, g_amp = fit_gaussian_bruteforce(
+		freq,
+		y_resid,
+		gauss_fit_mask,
+		center_bounds=(1420.05, 1420.75),
+		sigma_bounds=(0.005, 0.2),
+	)
+	y_final = y_resid - gaussian_fit
+	print(
+		f'{label}: Gaussian fit -> center={g_center:.6f} MHz, sigma={g_sigma:.6f} MHz, amplitude={g_amp:.6e}'
 	)
 	if plot_diag:
 		plt.figure()
@@ -155,18 +272,49 @@ def process_series(freq, ratio, label,plot_diag=False):
 
 		plt.figure()
 		plt.plot(freq, y_resid, label=f'{label}: residual')
+		plt.plot(freq, gaussian_fit, label='Gaussian fit', linewidth=2)
 		plt.xlabel('Frequency (MHz)')
 		plt.ylabel('Residual')
 		plt.xlim(1420.4-0.75,1420.4+0.75)
 
 		plt.legend()
+
+		plt.figure()
+		plt.plot(freq, y_final, label=f'{label}: residual after Gaussian subtraction')
+		plt.xlabel('Frequency (MHz)')
+		plt.ylabel('Residual')
+		plt.xlim(1420.4-0.75,1420.4+0.75)
+		plt.legend()
 		plt.show()
 
-	return y_resid
+	return y_final
+
+def build_total_model_and_residual(freq, ratio):
+	ratio_data = ratio
+	fmin = np.min(freq)
+	fmax = np.max(freq)
+	edge_mask = (freq >= (fmin + 0.25)) & (freq <= (fmax - 0.25))
+	hi_mask = ~((freq >= 1420.1) & (freq <= 1420.7))
+	fit_mask = edge_mask & hi_mask
+
+	lin_fit, periodic_fit, _, y_resid, _ = fit_linear_plus_periodic(
+		freq, ratio_data, fit_mask, nfreq=3
+	)
+	gauss_fit_mask = (freq >= 1419.95) & (freq <= 1420.85)
+	gaussian_fit, _, _, _ = fit_gaussian_bruteforce(
+		freq,
+		y_resid,
+		gauss_fit_mask,
+		center_bounds=(1420.05, 1420.75),
+		sigma_bounds=(0.005, 0.2),
+	)
+	total_model = lin_fit + periodic_fit + gaussian_fit
+	residual = ratio_data - total_model
+	return total_model, residual, gaussian_fit
 
 
 fit_data_1 = process_series(smooth_freq_1, ratio_1, 'f_center = 1420.4 MHz')
-fit_data_3 = process_series(smooth_freq_3, ratio_3, 'f_center = 1420.7 MHz')
+fit_data_3 = process_series(smooth_freq_3, ratio_3, 'f_center = 1420.7 MHz',plot_diag=True)
 
 fit_data_4 = process_series(smooth_freq_4, ratio_4, 'f_center = 1420.4 MHz')
 fit_data_5 = process_series(smooth_freq_5, ratio_5, 'f_center = 1420.7 MHz')
@@ -186,4 +334,34 @@ plt.plot(smooth_freq_3,fit_data_3,label='f_center = 1420.7 MHz')
 plt.xlabel('Frequency (MHz)')
 plt.ylabel(r'Residual')
 
+plt.show()
+
+model_1, residual_1, gauss_1 = build_total_model_and_residual(smooth_freq_1, ratio_1)
+model_3, residual_3, gauss_3 = build_total_model_and_residual(smooth_freq_3, ratio_3)
+
+fig, axs = plt.subplots(3, 1, sharex=True, figsize=(10, 10))
+
+axs[0].plot(smooth_freq_1, ratio_1, label='Raw data: f_center = 1420.4 MHz', alpha=0.75)
+axs[0].plot(smooth_freq_1, model_1, label='Model: linear + periodic + gaussian', linewidth=2)
+axs[0].plot(smooth_freq_3, ratio_3, label='Raw data: f_center = 1420.7 MHz', alpha=0.75)
+axs[0].plot(smooth_freq_3, model_3, label='Model: linear + periodic + gaussian (1420.7)', linewidth=2)
+axs[0].set_ylabel(r'$P_{sky}/P_{50 \Omega}$')
+axs[0].set_xlim(1420.4 - 0.75, 1420.4 + 0.75)
+axs[0].legend()
+
+axs[1].plot(smooth_freq_1, residual_1, label='Residual: f_center = 1420.4 MHz')
+axs[1].plot(smooth_freq_3, residual_3, label='Residual: f_center = 1420.7 MHz')
+axs[1].set_xlabel('Frequency (MHz)')
+axs[1].set_ylabel('Residual')
+axs[1].set_xlim(1420.4 - 0.75, 1420.4 + 0.75)
+axs[1].legend()
+
+axs[2].plot(smooth_freq_1, gauss_1, label='Gaussian fit: f_center = 1420.4 MHz')
+axs[2].plot(smooth_freq_3, gauss_3, label='Gaussian fit: f_center = 1420.7 MHz')
+axs[2].set_xlabel('Frequency (MHz)')
+axs[2].set_ylabel('Gaussian')
+axs[2].set_xlim(1420.4 - 0.75, 1420.4 + 0.75)
+axs[2].legend()
+
+plt.tight_layout()
 plt.show()
