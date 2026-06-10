@@ -1,4 +1,4 @@
-"""Data containers for calibration analysis."""
+"""Data containers for spectrum analysis."""
 
 from __future__ import annotations
 
@@ -50,15 +50,15 @@ class TuningAverage:
         return len(self.scans)
 
 
-class FiftyOhmCalibrationData:
-    """Read, group, average, and stitch 50 ohm calibration scans.
+class SpectrumDataSet:
+    """Read, group, average, and stitch repeated power spectrum scans.
 
     Parameters
     ----------
     data_dir
-        Directory containing CSV files written by ``scripts/take_50ohm_data.py``.
+        Directory containing CSV files written by the acquisition scripts.
     file_pattern
-        Glob pattern used to find calibration CSV files.
+        Glob pattern used to find spectrum CSV files.
     stitch_bin_width_hz
         Optional bin width for the stitched average. If omitted, tuning averages
         are concatenated and sorted by frequency without merging overlap regions.
@@ -89,7 +89,10 @@ class FiftyOhmCalibrationData:
     def n_tunings(self) -> int:
         return len(self.tunings)
 
-    def get_scans_for_tuning(self, center_freq_hz: int) -> tuple[PowerSpectrumScan, ...]:
+    def get_scans_for_tuning(
+        self,
+        center_freq_hz: int,
+    ) -> tuple[PowerSpectrumScan, ...]:
         return self.tunings[int(center_freq_hz)]
 
     def get_average_for_tuning(self, center_freq_hz: int) -> TuningAverage:
@@ -269,3 +272,15 @@ class FiftyOhmCalibrationData:
             binned_powers[idx] = np.mean(powers[in_bin])
 
         return binned_frequencies, binned_powers
+
+
+class FiftyOhmCalibrationData(SpectrumDataSet):
+    """Read, group, average, and stitch 50 ohm calibration scans."""
+
+
+class SkyObservationData(SpectrumDataSet):
+    """Read, group, average, and stitch 21cm sky observation scans."""
+
+
+class TwentyOneCmData(SkyObservationData):
+    """Alias for 21cm sky observation data."""
