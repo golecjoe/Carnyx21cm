@@ -17,9 +17,9 @@
     "fft_size": 4096,
     "samples_per_scan": 262144,
     "num_integrations": 30,
-    "num_scans": 5
+    "num_scans": 20
   },
   "output": {
-    "directory": "../data/test_21cm_data_061026"
+    "directory": "../data/commiss_21cm_data_061626_3"
   }
 }
