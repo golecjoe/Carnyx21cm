@@ -1,0 +1,21 @@
+{
+  "sdr": {
+    "sample_rate_hz": 2400000,
+    "center_freq_hz": 1420405800,
+    "gain_db": 36.4,
+    "bias_t": true
+  },
+  "observation": {
+    "settle_samples": 262144,
+    "fft_size": 4096,
+    "samples_per_scan": 262144,
+    "num_integrations": 5
+  },
+  "plot": {
+    "title": "Live 21 cm Horn PSD",
+    "refresh_interval_s": 0.05,
+    "y_min_db": -100,
+    "y_max_db": -20,
+    "grid": true
+  }
+}
