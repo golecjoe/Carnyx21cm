@@ -17,9 +17,9 @@
     "fft_size": 4096,
     "samples_per_scan": 262144,
     "num_integrations": 30,
-    "num_scans": 20
+    "num_scans": 10
   },
   "output": {
-    "directory": "../data/lab_50ohm_data_072026_2"
+    "directory": "../data/commiss_50ohm_data_072226_1"
   }
 }
