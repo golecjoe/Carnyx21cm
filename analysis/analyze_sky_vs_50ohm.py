@@ -95,7 +95,8 @@ def main() -> None:
     ax.set_xlabel("Frequency (MHz)")
     ax.set_ylabel("P_sky / P_50ohm")
     ax.set_title("Sky Spectrum Relative to 50 Ohm Calibration")
-    ax.set_ylim(0.75,0.8)
+    #ax.set_ylim(0.25,1.)
+    ax.set_ylim(0.72,0.81)
     ax.legend(title="Center frequency")
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
@@ -314,7 +315,9 @@ def write_stitched_ratio_plot(
     ax.set_xlabel("Frequency (MHz)")
     ax.set_ylabel("P_sky / P_50ohm")
     ax.set_title("Stitched Sky Spectrum Relative to 50 Ohm Calibration")
-    ax.set_ylim(0.75,0.8)
+    #ax.set_ylim(0.25,1.0)
+    ax.set_ylim(0.72,0.81)
+
 
     ax.grid(True, alpha=0.3)
     fig.tight_layout()

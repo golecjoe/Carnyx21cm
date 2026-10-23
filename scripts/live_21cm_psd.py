@@ -62,11 +62,14 @@ def main() -> None:
                 num_integrations=obs_cfg["num_integrations"],
             )
             freqs_mhz = freqs_hz / 1e6
-            line.set_data(freqs_mhz, psd_to_db(psd_linear))
+            #line.set_data(freqs_mhz, psd_to_db(psd_linear))
+            line.set_data(freqs_mhz, psd_linear)
             ax.set_xlim(freqs_mhz[0], freqs_mhz[-1])
-            if "y_min_db" not in plot_cfg and "y_max_db" not in plot_cfg:
-                ax.relim()
-                ax.autoscale_view(scalex=False, scaley=True)
+            #ax.set_ylim(-110,-80)
+            ax.set_ylim(0,1E-4)
+            # if "y_min_db" not in plot_cfg and "y_max_db" not in plot_cfg:
+            #     ax.relim()
+            #     ax.autoscale_view(scalex=False, scaley=True)
             fig.canvas.draw_idle()
             fig.canvas.flush_events()
             plt.pause(refresh_interval_s)
